@@ -4,7 +4,7 @@ from engine import *
 from game import *
 
 # pygame constants
-width = 1280
+width = 1400
 height = 720
 fps = 60
 
@@ -18,12 +18,12 @@ pygame.display.set_caption("Schiffeversenken")
 
 pool = render_pool()
 am = audio_manager()
-X = am.add("x.wav")
-O = am.add("o.wav")
-WON = am.add("won.wav")
-
+PLACE = am.add("place.wav")
+REMOVE = am.add("remove.wav")
+SHOT = am.add("shot.wav")
+EXPLOSION = am.add("explosion.wav")
 def init():
-	pool.add(field(screen, am, [X,O,WON]))
+	pool.add(field(screen, am, [PLACE, REMOVE]))
 
 init()
 ## Game loop

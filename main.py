@@ -1,5 +1,4 @@
 import pygame
-import random
 from engine import *
 from game import *
 

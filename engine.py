@@ -81,7 +81,7 @@ class audio_manager():
 			self.audiofiles[self.last_id] = pygame.mixer.Sound(audiofile)
 			self.last_id += 1 
 			return self.last_id-1
-		except():
+		except:
 			return -1
 	def play(self,id):
 		self.audiofiles[id].play()

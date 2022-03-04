@@ -10,15 +10,17 @@ class field(render_item, mouse_listener):
 	board = None
 	x, y = 0, 0
 	width, height = 700, 700
-	n = 10
+	n = 10 
+	radius = (width//n+1)//3
 
 	def __init__(self, surface, audio_manager_reference, audio_ids):
 		self.surface = surface
 		self.am = audio_manager_reference
 		self.audio_ids = audio_ids
 		self.reset()
-		self.place_boat((2,0),(2,6))
-		self.place_boat((7,0),(9,0))
+		self.place_boat((2,1),(2,6))
+		self.place_boat((7,1),(9,1))
+		self.place_boat((5,3),(5,7))
 
 	def reset(self):
 		self.board = [
@@ -63,7 +65,7 @@ class field(render_item, mouse_listener):
 				(0, line*(self.width//self.n)),
 				(self.width, line*(self.width//self.n))
 			)
-			#vertical lines
+			# vertical line
 			pygame.draw.aaline(
 				self.surface,
 				(255, 255, 255),
@@ -74,6 +76,7 @@ class field(render_item, mouse_listener):
 		for y, row in enumerate(self.board):
 			for x, col in enumerate(row):
 				if col == 1:
+					# Boats
 					pygame.draw.circle(
 						self.surface,
 						(255, 255, 255),
@@ -81,7 +84,7 @@ class field(render_item, mouse_listener):
 							+x*(self.width//self.n),
 						 (self.width//self.n)//2
 						 	+y*(self.width//self.n)),
-						25
+						self.radius 
 					)
 
 	def update(self):

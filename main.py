@@ -1,4 +1,5 @@
 import pygame
+from hud import *
 from engine import *
 from game import *
 
@@ -22,8 +23,9 @@ REMOVE = am.add("remove.wav")
 SHOT = am.add("shot.wav")
 EXPLOSION = am.add("explosion.wav")
 def init():
-	pool.add(field(screen, am, [PLACE, REMOVE]))
-
+	hud = HUD(screen, 750, 10)
+	pool.add(field(screen, am, [PLACE, REMOVE], hud))
+	pool.add(hud)
 init()
 ## Game loop
 running = True

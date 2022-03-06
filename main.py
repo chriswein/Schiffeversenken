@@ -6,7 +6,7 @@ from game import *
 # pygame constants
 width = 1400
 height = 720
-fps = 60
+fps = 30
 
 # pygame initialization
 pygame.init()
@@ -22,9 +22,10 @@ PLACE = am.add("place.wav")
 REMOVE = am.add("remove.wav")
 SHOT = am.add("shot.wav")
 EXPLOSION = am.add("explosion.wav")
+CLEAR = am.add("clear.wav")
 def init():
 	hud = HUD(screen, 750, 10)
-	pool.add(field(screen, am, [PLACE, REMOVE], hud))
+	pool.add(field(screen, am, [PLACE, REMOVE, CLEAR], hud))
 	pool.add(hud)
 init()
 ## Game loop

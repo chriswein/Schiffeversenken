@@ -1,3 +1,4 @@
+import random
 import math
 from engine import *
 import pygame
@@ -14,6 +15,8 @@ class field(render_item, mouse_listener):
 	width, height = 700, 700
 	n = 10 
 	radius = (width//n+1)//3
+	hits = 0
+	maxhits = 0
 
 	def __init__(self, surface, audio_manager_reference, audio_ids, hud):
 		self.surface = surface
@@ -24,6 +27,7 @@ class field(render_item, mouse_listener):
 		self.place_boat((2,1),(2,6))
 		self.place_boat((7,1),(9,1))
 		self.place_boat((5,3),(5,7))
+		self.maxhits = 14
 
 	def reset(self):
 		self.board = [
@@ -41,8 +45,10 @@ class field(render_item, mouse_listener):
 
 	def is_hit(self, x, y):
 		if self.hud != None:
-			self.hud.add()
+			if self.board[y][x] == 0: 
+				self.hud.add()
 		if self.board[y][x] == 2:
+			self.hits += 1
 			return True
 		return False
 	
@@ -105,8 +111,21 @@ class field(render_item, mouse_listener):
 					)
 					
 
+	def random_setup(self):
+		dice,col = random.randint(0,1), random.randint(0, len(self.board)-1)		
+		self.place_boat((col, 2), (col, 5))
+		col = random.randint(0, len(self.board)-1)		
+		self.place_boat((col, 3), (col, 6))
+		self.maxhits = 8
+	
+
 	def update(self):
-		pass
+		if self.hits == self.maxhits and self.hits != 0:
+			self.reset()
+			self.am.play(self.audio_ids[2])
+			self.hits = 0
+			self.hud.reset()
+			self.random_setup()
 
 	def mouse_click(self, e):
 		x, y = e

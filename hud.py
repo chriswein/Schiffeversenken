@@ -12,7 +12,7 @@ class HUD(render_item):
 
 	def draw(self):
 		font = pygame.font.SysFont("Comic Sans MS", 30)
-		image = font.render("Versuche {}".format(self.points), False, (255,255,255))
+		image = font.render("Daneben {}".format(self.points), False, (255,255,255))
 		self.surface.blit(image, (self.x,self.y))
 		#pygame.draw.rect(self.surface,(255,255,255)
 		None
@@ -22,3 +22,6 @@ class HUD(render_item):
 	
 	def add(self):
 		self.points += 1
+
+	def reset(self):
+		self.points = 0

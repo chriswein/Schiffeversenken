@@ -30,9 +30,9 @@ python main.py
 ```
 PySchiffeversenken/
 ├── main.py
-├── game/
-│   ├── __init__.py
-│   └── ...
+├── game.py
+├── engine.py
+├── hud.py
 └── readme.md
 ```
 

@@ -1,13 +1,9 @@
 .vscode/launch.json
 map.tmx
-place.wav
-remove.wav
-shot.wav
 tileset.png
 Gameboy.tsx
 gameboy_outdoor_assets_v1.2.png
 fore.png
-explosion.wav
 back.tsx
 back.png
 dev.md

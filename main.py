@@ -42,6 +42,8 @@ while running:
 		elif event.type == pygame.KEYDOWN:
 			if event.key == pygame.K_f:
 				pygame.display.toggle_fullscreen()
+			if event.key == pygame.K_q:
+				running = False
 
 	screen.fill((0,0,0))
 

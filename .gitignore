@@ -1,6 +1,4 @@
 .vscode/launch.json
-__pycache__/engine.cpython-38.pyc
-__pycache__/game.cpython-38.pyc
 map.tmx
 place.wav
 remove.wav
@@ -12,3 +10,6 @@ fore.png
 explosion.wav
 back.tsx
 back.png
+dev.md
+Session.vim
+*.pyc

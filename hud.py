@@ -17,7 +17,6 @@ class HUD(render_item):
 		text2 = font.render("Getroffen: {}".format(self.points), False, (255,255,255))
 		self.surface.blit(text1, (self.x, self.y))
 		self.surface.blit(text2, (self.x, self.y + text1.get_height() + 5))  # 5 Pixel Abstand
-		#pygame.draw.rect(self.surface,(255,255,255)
 		None
 
 	def update(self):
@@ -31,3 +30,30 @@ class HUD(render_item):
 
 	def reset(self):
 		self.points = 0
+
+	def receive(self, message_type, data):
+		if message_type == "hit":
+			self.add_hit()
+		elif message_type == "miss":
+			self.add_miss()
+
+class Placement_HUD(render_item):
+	surface = None
+
+	def __init__(self, surface, x = 0, y = 0):
+		self.surface = surface
+		self.x, self.y = x, y
+		pygame.font.init()	
+
+	def draw(self):
+		font = pygame.font.SysFont("Comic Sans MS", 30)
+		text1 = font.render("Platzierungsmodus", False, (255,255,255))
+		self.surface.blit(text1, (self.x, self.y))
+		#pygame.draw.rect(self.surface,(255,255,255)
+		None
+
+	def update(self):
+		None
+	
+	def receive_message(self, message_type, data):
+		None

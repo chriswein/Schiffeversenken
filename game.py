@@ -1,13 +1,14 @@
 import random
-import math
 from engine import *
 import pygame
 from pygame import gfxdraw
 
+from player import player_field
+
 
 class field(render_item, mouse_listener):
     """ A board for playing the game on """
-    surface, am, audio_ids = None, None, None  # Drawing surface, Audio Manager, Audio Ids
+    surface, audio_manager, audio_ids = None, None, None  # Drawing surface, Audio Manager, Audio Ids
     hud = None
     is_turn = True  # Indicates wether it is the players turn.
     board = None
@@ -18,17 +19,20 @@ class field(render_item, mouse_listener):
     hits = 0
     maxhits = 0
 
-    def __init__(self, surface, audio_manager_reference, audio_ids, hud):
+    def __init__(self, surface, audio_manager_reference, audio_ids, hud, offset_x=1, offset_y=1):
         self.surface = surface
-        self.am = audio_manager_reference
+        self.audio_manager = audio_manager_reference
         self.audio_ids = audio_ids
         self.hud = hud
+        self.x, self.y = offset_x, offset_y
         self.reset()
         # Place three boats at fixed positions
         self.place_boat((2, 1), (2, 6))
         self.place_boat((7, 1), (9, 1))
         self.place_boat((5, 3), (5, 7))
         self.maxhits = 14
+        message_center_instance.subscribe("game_over", self)
+        message_center_instance.subscribe(turn_over_message.__name__, self)
 
     def reset(self):
         # Reset the board to empty (0 = water)
@@ -47,10 +51,10 @@ class field(render_item, mouse_listener):
 
     def is_hit(self, x, y):
         # Check if the selected cell is a hit or miss
-        if self.hud != None:
+        if self.hud != None and self.board[y][x] in [Status.Water,Status.Boat]:
             self.hud.add_hit(
-            ) if self.board[y][x] == 2 else self.hud.add_miss()
-        if self.board[y][x] == 2:
+            ) if self.board[y][x] == Status.Boat else self.hud.add_miss()
+        if self.board[y][x] in [Status.Boat]:
             self.hits += 1
             return True
         return False
@@ -63,12 +67,12 @@ class field(render_item, mouse_listener):
         if y1 == y2:
             # Horizontal boat
             for x in range(min(x1, x2), max(x1, x2)+1):
-                self.board[y1][x] = 2
+                self.board[y1][x] = Status.Boat
             return True
         elif x1 == x2:
             # Vertical boat
             for y in range(min(y1, y2), max(y1, y2)+1):
-                self.board[y][x1] = 2
+                self.board[y][x1] = Status.Boat
             return True
         else:
             # Only straight boats allowed
@@ -76,26 +80,27 @@ class field(render_item, mouse_listener):
 
     def draw(self):
         # Draw the grid
-        for line in range(1, 11):
+        for line in range(0, 11):
             # horizontal lines
+              # horizontal lines
             pygame.draw.aaline(
                 self.surface,
                 (255, 255, 255),
-                (0, line*(self.width//self.n)),
-                (self.width, line*(self.width//self.n))
+                (0+self.x, line*(self.width//self.n)),
+                (self.width+self.x, line*(self.width//self.n))
             )
             # vertical lines
             pygame.draw.aaline(
                 self.surface,
                 (255, 255, 255),
-                (line*(self.width//self.n), 0),
-                (line*(self.width//self.n), self.height)
+                ((line*(self.width//self.n))+self.x, 0+self.y),
+                ((line*(self.width//self.n))+self.x, self.height+self.y)
             )
 
         # Draw the board state (boats, misses)
         for y, row in enumerate(self.board):
             for x, col in enumerate(row):
-                if col == 1:
+                if col == Status.Hit:
                     # Hit boat
                     pygame.draw.circle(
                         self.surface,
@@ -113,7 +118,7 @@ class field(render_item, mouse_listener):
                                             + y*(self.width//self.n),
                                             self.radius,
                                             (255, 255, 255))
-                elif col == 3:
+                elif col == Status.Miss:
                     # Miss
                     pygame.draw.circle(
                         self.surface,
@@ -161,9 +166,10 @@ class field(render_item, mouse_listener):
                     (col, row),
                     point  # stay in row
                 )
-            """ TODO maybe this needs to be a little less random to enshure some constraints the user can
-                                exploit
-                        """
+            """ 
+                    TODO maybe this needs to be a little less random to enshure some constraints the user can
+                    exploit
+            """
         print(possible_target_points, ships)
         self.maxhits = possible_target_points
 
@@ -171,6 +177,7 @@ class field(render_item, mouse_listener):
         # Check if all ships are hit, then reset and start new round
         if self.hits == self.maxhits and self.hits != 0:
 			# Show winning screen for 2 seconds
+            message_center_instance.publish("game_over", None)
             font = pygame.font.SysFont(None, 72)
             text = font.render("You Win!", True, (255, 255, 0))
             rect = text.get_rect(center=(self.surface.get_width() // 2, self.surface.get_height() // 2))
@@ -178,12 +185,13 @@ class field(render_item, mouse_listener):
             pygame.display.flip()
             pygame.time.delay(2000)
             self.reset()
-            self.am.play(self.audio_ids[2])
+            self.audio_manager.play(self.audio_ids[2])
             self.hits = 0
             self.hud.reset()
             self.random_setup()
 
-    def mouse_click(self, e):
+
+    def mouse_click(self, e, button):
         # Handle mouse click event
         x, y = e
         if (
@@ -195,14 +203,31 @@ class field(render_item, mouse_listener):
         ):
             # the player clicked inside our board
             bx, by = x//(self.width//self.n), y//(self.height//self.n)
-            if not self.is_hit(bx, by):
-                if not self.board[by][bx] == 1:
-                    self.board[by][bx] = 3  # Mark as miss
-                    self.am.play(self.audio_ids[0])
+            
+            message_center_instance.publish(message_type=attack_message.__name__, # for the ai
+                                             data=attack_message(self.__class__.__name__, bx, by))
+            if self.is_hit(bx, by):
+                self.board[by][bx] = Status.Hit  # Mark as hit
+                self.audio_manager.play(self.audio_ids[1])
+                message_center_instance.publish(attack_result_message.__name__,attack_result_message(self.__class__.__name__,bx,by ,True))
             else:
-                self.board[by][bx] = 1  # Mark as hit
-                self.am.play(self.audio_ids[1])
-
+                if self.board[by][bx] == Status.Water:
+                    self.board[by][bx] = Status.Miss  # Mark as miss
+                    self.audio_manager.play(self.audio_ids[0])
+                    message_center_instance.publish(attack_result_message.__name__,attack_result_message(self.__class__.__name__,bx,by ,False))
+            # self.is_turn = False
+                # Else do nothing, already hit/miss
+    def receive(self, message_type, data):
+        print(f"Field received message: {message_type}")
+        if message_type == turn_over_message.__name__:
+            if data.player_id == field.__name__:
+                self.is_turn = True
+                print("Player's turn")
+        elif message_type == "game_over":
+            print("Game Over received in field")
+            self.is_turn = False  # Disable further input until reset
+            self.reset()
+        None    
 
 class board_bridge(render_item):
     boards = []
@@ -226,3 +251,6 @@ class board_bridge(render_item):
     def pool(self, pool):
         # Store a reference to a pool (purpose
         None
+    def receive_message(self, message_type, data):  
+        None  # Placeholder for message handling
+

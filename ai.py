@@ -16,7 +16,7 @@ class AI(message_subscriber):
         for y in range(10):
             for x in range(10):
                 # The 'checkerboard' pattern: (x + y) is even
-                if (x + y) % 2 == 0 and self.board[x][y] == Status.Water:
+                if (x + y) % 2 == 0 and self.board[x][y] == Status.Water.value:
                     targets.append((x, y))
         return targets
     
@@ -29,12 +29,12 @@ class AI(message_subscriber):
         if self.mode == "hunt":
             # Hunting for a new ship
             possible_attacks = [(x, y) for x in range(0, 10) for y in range(0, 10) 
-                        if self.board[y][x] == Status.Water 
+                        if self.board[y][x] == Status.Water.value 
                         and (x, y) not in self.attacked_cells]
 
             if not possible_attacks:
                 # Fallback to a simpler hunt if checkerboard is exhausted
-                possible_attacks = [(x, y) for x in range(10) for y in range(10) if self.board[y][x] == Status.Water]
+                possible_attacks = [(x, y) for x in range(10) for y in range(10) if self.board[y][x] == Status.Water.value]
             
             if possible_attacks:
                 random.shuffle(possible_attacks)
@@ -64,7 +64,7 @@ class AI(message_subscriber):
             case attack_result_message.__name__:
                 if data.attacked_player == player_field.__name__:
                     if data.boat_hit:
-                        self.board[data.y][data.x] = Status.Hit
+                        self.board[data.y][data.x] = Status.Hit.value
                         self.mode = "target"
                         self.last_hit = (data.x, data.y)
                         self.attacked_cells.add((data.x, data.y))
@@ -72,7 +72,7 @@ class AI(message_subscriber):
                         x, y = data.x, data.y
                         adjacent = [(x+1, y), (x-1, y), (x, y+1), (x, y-1)]
                         for ax, ay in adjacent: 
-                            if 0 <= ax < 10 and 0 <= ay < 10 and self.board[ay][ax] == Status.Water and (ax, ay) not in self.attacked_cells:
+                            if 0 <= ax < 10 and 0 <= ay < 10 and self.board[ay][ax] == Status.Water.value and (ax, ay) not in self.attacked_cells:
                                 self.potential_targets.append((ax, ay))
                     else:
                         self.board[data.y][data.x] = Status.Miss

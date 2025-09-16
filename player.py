@@ -14,8 +14,8 @@ class player_field(render_item, mouse_listener):
     width, height = 700, 700
     n = 10
     radius = (width//n+1)//3
-    boats = [Boat.Fregate, Boat.Destroyer, Boat.Submarine]
-    placed_boats = [False,False,False]
+    boats = []#[Boat.Fregate, Boat.Destroyer, Boat.Submarine]
+    placed_boats = []#[False,False,False]
     selected_boat = None
     placing_boat = True
     boat_start = None
@@ -24,6 +24,7 @@ class player_field(render_item, mouse_listener):
     board = None
     hits = 0
     maxhits = 0
+    maxboats = 3
     placement_direction = Direction.Horizontal
 
   
@@ -40,6 +41,7 @@ class player_field(render_item, mouse_listener):
         message_center_instance.subscribe(attack_message.__name__, self)
         message_center_instance.subscribe(attack_result_message.__name__, self)
         message_center_instance.subscribe(turn_over_message.__name__, self)
+        message_center_instance.subscribe(boat_choice_message.__name__, self)   
 
     def mouse_in_board(self, x, y):
         return (
@@ -74,19 +76,18 @@ class player_field(render_item, mouse_listener):
         boat_size = boat_sizes[boat]
         boat_start_offset = boat_size//2
         boat_end_offset = boat_size-boat_start_offset-1
-    
         if direction == Direction.Horizontal:
             if x-boat_start_offset < 0 or x+boat_end_offset >= self.n:
                 return False
             for i in range(-boat_start_offset, boat_end_offset+1):
-                if self.board[y][x+i] != Status.Water:
+                if self.board[y][x+i] != Status.Water.value:
                     return False
             return True
         elif direction == Direction.Vertical:
             if y-boat_start_offset < 0 or y+boat_end_offset >= self.n:
                 return False
             for i in range(-boat_start_offset, boat_end_offset+1):
-                if self.board[y+i][x] != Status.Water:
+                if self.board[y+i][x] != Status.Water.value:
                     return False
             return True
 
@@ -108,6 +109,7 @@ class player_field(render_item, mouse_listener):
         y = y*(cell)+self.radius+self.y
         return (x,y)    
 
+#MARK: Boat plcmnt
     def show_boat_placement(self, x, y):
         if not self.boat_placement_modus():
             return
@@ -125,7 +127,9 @@ class player_field(render_item, mouse_listener):
             # wx,wy = self.get_board_position_in_word_coordinates(bx,by)
             for i in range(-boat_start_offset, boat_end_offset+1):
                 self.draw_indicator_circle(bx, by+i, (0,255,0) if self.placing_boat else (255,0,0))
-
+        else:
+            print(f"Cannot place boat here { self.can_place_boat(self.placement_direction, bx, by, self.selected_boat)} for {self.placement_direction} {bx},{by} {self.selected_boat} {boat_sizes[self.selected_boat]}")
+#MARK: draw & update
     def draw(self):
         for line in range(0, 11):
             # horizontal lines
@@ -145,22 +149,19 @@ class player_field(render_item, mouse_listener):
         m_x,m_y = pygame.mouse.get_pos()
 
         if self.mouse_in_board(m_x,m_y) and self.boat_placement_modus():
-            # self.draw_indicator_circle(m_x, m_y, (0,255,0) if self.placing_boat else (255,0,0), self.radius)
-            pygame.draw.circle(
-                self.surface, 
-                (255, 255, 0) if self.placing_boat else (255, 0, 0),
-                (m_x, m_y),
-                self.radius
-            )
             self.show_boat_placement(m_x,m_y)
         
+            bx,by = self.get_mouse_board_position_in_grid_coordinates(m_x,m_y) if self.mouse_in_board(m_x,m_y) else (None,None)
+            if bx != None:
+                self.draw_indicator_circle(bx,by, (255,255,255), self.radius) # Dummy to fix gfxdraw issue
+
         for by in range(0,10):
             for bx in range(0,10):
-                if self.board[by][bx] == Status.Boat:
+                if self.board[by][bx] == Status.Boat.value:
                     self.draw_indicator_circle(bx, by, (0,0,255), self.radius)
-                elif self.board[by][bx] == Status.Hit:
+                elif self.board[by][bx] == Status.Hit.value:
                     self.draw_indicator_circle(bx, by, (255,0,0), self.radius)
-                elif self.board[by][bx] == Status.Miss:
+                elif self.board[by][bx] == Status.Miss.value:
                     self.draw_indicator_circle(bx, by, (255,255,255), self.radius//2)
 
         
@@ -175,6 +176,7 @@ class player_field(render_item, mouse_listener):
             return
         
         bx, by = self.get_mouse_board_position_in_grid_coordinates(xw,yw)
+
         if self.can_place_boat(self.placement_direction, bx, by, self.selected_boat):
             boat_size = boat_sizes[self.selected_boat]
             boat_start_offset = boat_size//2
@@ -182,21 +184,19 @@ class player_field(render_item, mouse_listener):
 
             if self.placement_direction == Direction.Horizontal:
                 for i in range(-boat_start_offset, boat_end_offset+1):
-                    self.board[by][bx+i] = Status.Boat
+                    self.board[by][bx+i] = Status.Boat.value
+
             elif self.placement_direction == Direction.Vertical:
                 for i in range(-boat_start_offset, boat_end_offset+1):
-                    self.board[by+i][bx] = Status.Boat
+                    self.board[by+i][bx] = Status.Boat.value
+
             self.placed_boats[self.boats.index(self.selected_boat)] = True
             self.maxhits += boat_size
 
-            # Select next boat
-            next_boat = None
-            for b in self.boats:
-                if not self.placed_boats[self.boats.index(b)]:
-                    next_boat = b
-                    break
-            self.selected_boat = next_boat
-            if self.selected_boat == None:
+            message_center_instance.publish(boat_placed_message.__name__, boat_placed_message(player_field.__name__, self.selected_boat))
+            
+            if len(self.boats) > self.maxboats: # Placed all boats
+                self.selected_boat = None
                 self.placing_boat = False
 
     def mouse_click(self, event, button):
@@ -211,8 +211,9 @@ class player_field(render_item, mouse_listener):
         None
 
     def reset(self):
-        self.placed_boats = [False,False,False]
-        self.selected_boat = self.boats[1] if len(self.boats) > 0 else None
+        self.placed_boats = []
+        self.boats = []
+        self.selected_boat = None
         self.is_turn = True
         self.placing_boat = True
         self.hits = 0
@@ -229,6 +230,7 @@ class player_field(render_item, mouse_listener):
             [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
         ]
 
+    #MARK: Msg Listener
     def receive(self, message_type, data):
         match message_type:
             case "game_over":
@@ -241,15 +243,15 @@ class player_field(render_item, mouse_listener):
                 data : attack_message = data
                 if data.player_id_has_been_attacked == self.__class__.__name__:
                     ax, ay = data.x, data.y
-                    if self.board[ax][ay] == Status.Boat:
+                    if self.board[ax][ay] == Status.Boat.value:
                         message_center_instance.publish(attack_result_message.__name__,attack_result_message(data.player_id_has_been_attacked,ax,ay ,True))
-                        self.board[ax][ay] = Status.Hit
+                        self.board[ax][ay] = Status.Hit.value
                         self.hits += 1
                         if self.hits >= self.maxhits:
                             message_center_instance.publish("game_over", None)
                     else:
                         message_center_instance.publish(attack_result_message.__name__,attack_result_message(data.player_id_has_been_attacked,ax,ay ,False))
-                        self.board[ax][ay] = Status.Miss
+                        self.board[ax][ay] = Status.Miss.value
 
             case attack_result_message.__name__: 
                 data : attack_result_message = data
@@ -259,3 +261,13 @@ class player_field(render_item, mouse_listener):
             case turn_over_message.__name__:
                 if data.player_id != self.__class__.__name__:
                     self.is_turn = True
+#MARK: Boat choice
+            case boat_choice_message.__name__:
+                print("Player field received boat choice message")
+                data : boat_choice_message = data
+                if data.player_id == self.__class__.__name__:
+                    self.boats.append(data.boat)
+                    self.placed_boats.append(False)
+                    self.selected_boat = data.boat
+                    self.placing_boat = True
+                    self.placement_direction = Direction.Horizontal

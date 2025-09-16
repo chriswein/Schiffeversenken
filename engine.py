@@ -1,21 +1,21 @@
 from abc import ABC, abstractmethod
-import json
 import pygame 
+from enum import Enum
 
 DEBUG = True
 
-class Status(enumerate):
+class Status(Enum):
     Water = 0
     Hit = 1
     Boat = 2
     Miss = 3
     Placement = 4
 
-class Direction(enumerate):
+class Direction(Enum):
     Horizontal = 0
     Vertical = 1    
 
-class Boat(enumerate):
+class Boat(Enum):
     Fregate = 0
     Destroyer = 1
     Submarine = 2
@@ -30,7 +30,7 @@ boat_sizes = {
     Boat.Battleship: 5
 }
 
-class MouseButton(enumerate):
+class MouseButton(Enum):
 	Left = 1
 	Middle = 2
 	Right = 3
@@ -51,6 +51,16 @@ class attack_result_message():
 class turn_over_message():
 	def __init__(self,player_id):
 		self.player_id = player_id
+
+class boat_choice_message():
+	def __init__(self, player_id, boat : Boat):
+		self.player_id = player_id
+		self.boat = boat
+
+class boat_placed_message():
+	def __init__(self, player_id, boat : Boat):
+		self.player_id = player_id
+		self.boat = boat
 
 class message_subscriber(ABC):
 	@abstractmethod
@@ -173,12 +183,11 @@ class message_center():
 				del self.subscribers[message_type]
 
 	def publish(self, message_type, data=None):
-		assert(message_type in [turn_over_message.__name__, attack_message.__name__, attack_result_message.__name__, "game_over"])
-		if(DEBUG):
-			try:
-				print(f"Publishing message of type {message_type} with data {vars(data)}")
-			except:
-				print(f"Publishing message of type {message_type} with data {data}")
+		assert(message_type in [turn_over_message.__name__, attack_message.__name__, attack_result_message.__name__, "game_over", boat_choice_message.__name__, boat_placed_message.__name__])
+		try:
+			print(f"Publishing message of type {message_type} with data {vars(data)}")
+		except:
+			print(f"Publishing message of type {message_type} with data {data}")
 		if message_type in self.subscribers:
 			for listener in self.subscribers[message_type]:
 				listener.receive(message_type, data)

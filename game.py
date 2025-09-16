@@ -51,10 +51,10 @@ class field(render_item, mouse_listener):
 
     def is_hit(self, x, y):
         # Check if the selected cell is a hit or miss
-        if self.hud != None and self.board[y][x] in [Status.Water,Status.Boat]:
+        if self.hud != None and self.board[y][x] in [Status.Water.value,Status.Boat.value]:
             self.hud.add_hit(
             ) if self.board[y][x] == Status.Boat else self.hud.add_miss()
-        if self.board[y][x] in [Status.Boat]:
+        if self.board[y][x] in [Status.Boat.value]:
             self.hits += 1
             return True
         return False
@@ -67,12 +67,12 @@ class field(render_item, mouse_listener):
         if y1 == y2:
             # Horizontal boat
             for x in range(min(x1, x2), max(x1, x2)+1):
-                self.board[y1][x] = Status.Boat
+                self.board[y1][x] = Status.Boat.value
             return True
         elif x1 == x2:
             # Vertical boat
             for y in range(min(y1, y2), max(y1, y2)+1):
-                self.board[y][x1] = Status.Boat
+                self.board[y][x1] = Status.Boat.value
             return True
         else:
             # Only straight boats allowed
@@ -137,40 +137,27 @@ class field(render_item, mouse_listener):
                                             self.radius//2,
                                             (255, 255, 255))
 
-    def coord(self, maximum, minimum=0):
+    def rnd_coord(self, maximum, minimum=0):
         # Get a random coordinate between minimum and maximum
         return random.randint(minimum, maximum)
 
     def random_setup(self):
         # Randomly place three ships on the board
+        boats = [Boat.Fregate, Boat.Destroyer, Boat.Submarine]
+       
         possible_target_points = 0
-        ships = []
-        for i in range(0, 3):
-            dice, col, row = self.coord(1, 0), self.coord(
-                len(self.board)-3), self.coord(len(self.board)-3)
-            if dice:
-                # go horizontal
-                point = (col, self.coord(len(self.board)-1, row))
-                possible_target_points += abs(point[1]-row)
-                ships.append(abs(point[1]-row))
-                self.place_boat(
-                    (col, row),
-                    point  # stay in line
-                )
-            else:
-                # go vertical
-                point = (self.coord(len(self.board)-1, col), row)
-                possible_target_points += abs(point[0]-col)
-                ships.append(abs(point[0]-col))
-                self.place_boat(
-                    (col, row),
-                    point  # stay in row
-                )
-            """ 
-                    TODO maybe this needs to be a little less random to enshure some constraints the user can
-                    exploit
-            """
-        print(possible_target_points, ships)
+        for i in range(0, len(boats)):
+            dice = random.choice([True, False])
+            len_boat = boat_sizes[boats[i]]
+            possible_target_points += len_boat
+            if dice:    # go horizontal 
+                start = self.rnd_coord(len(self.board)-1-len_boat,0)
+                row = self.rnd_coord(len(self.board)-1)
+                self.place_boat((start, row), (start+len_boat-1,row))
+            else:    # go vertical
+                start = self.rnd_coord(len(self.board)-1-len_boat,0)
+                col = self.rnd_coord(len(self.board)-1)
+                self.place_boat((col, start), (col,start+len_boat-1))
         self.maxhits = possible_target_points
 
     def update(self):
@@ -211,11 +198,10 @@ class field(render_item, mouse_listener):
                 self.audio_manager.play(self.audio_ids[1])
                 message_center_instance.publish(attack_result_message.__name__,attack_result_message(self.__class__.__name__,bx,by ,True))
             else:
-                if self.board[by][bx] == Status.Water:
+                if self.board[by][bx] == Status.Water.value:
                     self.board[by][bx] = Status.Miss  # Mark as miss
                     self.audio_manager.play(self.audio_ids[0])
                     message_center_instance.publish(attack_result_message.__name__,attack_result_message(self.__class__.__name__,bx,by ,False))
-            # self.is_turn = False
                 # Else do nothing, already hit/miss
     def receive(self, message_type, data):
         print(f"Field received message: {message_type}")

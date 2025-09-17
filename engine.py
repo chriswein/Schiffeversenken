@@ -62,9 +62,10 @@ class boat_placed_message():
 		self.player_id = player_id
 		self.boat = boat
 
+
 class message_subscriber(ABC):
 	@abstractmethod
-	def receive(self, message_type, data):
+	def receive(self, message_type : str, data):
 		pass
 	
 class render_item(message_subscriber):
@@ -170,6 +171,7 @@ class audio_manager():
 
 class message_center():
 	subscribers = {}
+	valid_messages = [turn_over_message.__name__, attack_message.__name__, attack_result_message.__name__, boat_choice_message.__name__, boat_placed_message.__name__, "game_over"]
 
 	def subscribe(self, message_type, listener : message_subscriber):
 		if message_type not in self.subscribers:
@@ -183,11 +185,13 @@ class message_center():
 				del self.subscribers[message_type]
 
 	def publish(self, message_type, data=None):
-		assert(message_type in [turn_over_message.__name__, attack_message.__name__, attack_result_message.__name__, "game_over", boat_choice_message.__name__, boat_placed_message.__name__])
-		try:
-			print(f"Publishing message of type {message_type} with data {vars(data)}")
-		except:
-			print(f"Publishing message of type {message_type} with data {data}")
+		assert(message_type in self.valid_messages)
+		if DEBUG:
+			try:
+				print(f"Publishing message of type {message_type} with data {vars(data)}") 
+			except:
+				print(f"Publishing message of type {message_type} with data {data}") 
+
 		if message_type in self.subscribers:
 			for listener in self.subscribers[message_type]:
 				listener.receive(message_type, data)

@@ -118,17 +118,15 @@ class player_field(render_item, mouse_listener):
         boat_size = boat_sizes[self.selected_boat]
         boat_start_offset = boat_size//2
         boat_end_offset = boat_size-boat_start_offset-1
-
-        if self.can_place_boat(Direction.Horizontal, bx, by, self.selected_boat) and not self.placement_direction == Direction.Vertical:
-            # wx,wy = self.get_board_position_in_word_coordinates(bx,by)
+        
+        if(self.can_place_boat(self.placement_direction, bx, by, self.selected_boat)):
             for i in range(-boat_start_offset, boat_end_offset+1):
-                self.draw_indicator_circle(bx+i, by, (0,255,0) if self.placing_boat else (255,0,0))
-        elif self.can_place_boat(Direction.Vertical, bx, by, self.selected_boat) and not self.placement_direction == Direction.Horizontal:
-            # wx,wy = self.get_board_position_in_word_coordinates(bx,by)
-            for i in range(-boat_start_offset, boat_end_offset+1):
-                self.draw_indicator_circle(bx, by+i, (0,255,0) if self.placing_boat else (255,0,0))
-        else:
-            print(f"Cannot place boat here { self.can_place_boat(self.placement_direction, bx, by, self.selected_boat)} for {self.placement_direction} {bx},{by} {self.selected_boat} {boat_sizes[self.selected_boat]}")
+                self.draw_indicator_circle(
+                    bx+i if self.placement_direction == Direction.Horizontal else bx,
+                    by if self.placement_direction == Direction.Horizontal else by+i,
+                    (0,255,0) 
+                )
+                
 #MARK: draw & update
     def draw(self):
         for line in range(0, 11):
@@ -190,7 +188,7 @@ class player_field(render_item, mouse_listener):
                 for i in range(-boat_start_offset, boat_end_offset+1):
                     self.board[by+i][bx] = Status.Boat.value
 
-            self.placed_boats[self.boats.index(self.selected_boat)] = True
+            self.placed_boats[-1] = True
             self.maxhits += boat_size
 
             message_center_instance.publish(boat_placed_message.__name__, boat_placed_message(player_field.__name__, self.selected_boat))
@@ -234,10 +232,7 @@ class player_field(render_item, mouse_listener):
     def receive(self, message_type, data):
         match message_type:
             case "game_over":
-                self.is_turn = True
-                self.placing_boat = True
                 self.reset()
-                print("Game Over received in player_field")
 
             case attack_message.__name__:
                 data : attack_message = data
@@ -266,8 +261,12 @@ class player_field(render_item, mouse_listener):
                 print("Player field received boat choice message")
                 data : boat_choice_message = data
                 if data.player_id == self.__class__.__name__:
+                    if not all(self.placed_boats): # This happens if the player changes his mind and wants to place another boat
+                        if len(self.boats) > 0 and self.placed_boats[-1] == False:
+                            self.boats.pop()
+                            self.placed_boats.pop()
                     self.boats.append(data.boat)
                     self.placed_boats.append(False)
+                    print(f"Player field boats: {len(self.boats)}")
                     self.selected_boat = data.boat
-                    self.placing_boat = True
                     self.placement_direction = Direction.Horizontal

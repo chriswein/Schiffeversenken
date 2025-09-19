@@ -15,15 +15,15 @@ class HUD(render_item):
         pygame.font.init()
 
     def draw(self):
-        font = pygame.font.SysFont("Comic Sans MS", 30)
-        text1 = font.render("Daneben: {}".format(
-            self.misses), False, (255, 255, 255))
-        text2 = font.render("Getroffen: {}".format(
-            self.points), False, (255, 255, 255))
-        self.surface.blit(text1, (self.x, self.y))
+        # font = pygame.font.SysFont("Comic Sans MS", 30)
+        # text1 = font.render("Daneben: {}".format(
+            # self.misses), False, (255, 255, 255))
+        # text2 = font.render("Getroffen: {}".format(
+            # self.points), False, (255, 255, 255))
+        # self.surface.blit(text1, (self.x, self.y))
         # 5 Pixel Abstand
-        self.surface.blit(text2, (self.x, self.y + text1.get_height() + 5))
-        None
+        # self.surface.blit(text2, (self.x, self.y + text1.get_height() + 5))
+        pass
 
     def update(self):
         pass
@@ -52,6 +52,8 @@ class Placement_HUD(render_item, mouse_listener):
     text_height: int = 0
     currently_selected_boat: int = None
     user_clicked_on_label: bool = False
+    boats_max_n : int = 3
+    boats_n : int = 0
 
     def __init__(self, surface, x=0, y=0):
         self.surface = surface
@@ -60,9 +62,11 @@ class Placement_HUD(render_item, mouse_listener):
         pygame.font.init()
         self.font = pygame.font.SysFont("Comic Sans MS", 30)
         self.text1 = self.font.render(
-            "Platzierungsmodus", False, (255, 255, 255))
+            "- Placement mode -", False, (255, 255, 255))
         self.text2 = self.font.render(
             "Right click to turn ship 90deg", False, (255, 255, 255))
+        self.text3 = self.font.render(
+            "Remaining boats: ", False, (255, 255, 255))
         message_center_instance.subscribe(boat_placed_message.__name__, self)
 
     def __del__(self):
@@ -71,6 +75,7 @@ class Placement_HUD(render_item, mouse_listener):
     def draw(self):
         self.surface.blit(self.text1, (self.x, self.y))
         self.surface.blit(self.text2, (self.x+750, self.y))
+        self.surface.blit(self.text3, (self.x, self.y+500))
         self.position_of_boats = {}
 
         # draw selectable boats
@@ -95,6 +100,11 @@ class Placement_HUD(render_item, mouse_listener):
 
             self.position_of_boats[boat] = (
                 self.x, self.y + self.text1.get_height() + 5 + i * (boat_text.get_height() + 5)
+            )
+
+            self.surface.blit(
+                self.font.render(f"{self.boats_max_n-self.boats_n}",True,(255,255,255)),
+                (self.x,self.y+550)
             )
 
     def get_selected_boat(self, x: int, y: int) -> int | None:
@@ -135,3 +145,4 @@ class Placement_HUD(render_item, mouse_listener):
                 if data.player_id == player_field.__name__:
                     self.currently_selected_boat = None
                     self.user_clicked_on_label = False
+                    self.boats_n+=1

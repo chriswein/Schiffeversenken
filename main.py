@@ -34,7 +34,7 @@ EXPLOSION = audiomng.add("./sounds/explosion.wav")
 CLEAR = audiomng.add("./sounds/clear.wav")
 hud = HUD(screen, 750, 10)
 placement_HUD = Placement_HUD(screen, 50, 10)
-f = field(screen, audiomng, [PLACE, REMOVE, CLEAR], hud)
+f = field(screen, audiomng, [PLACE, REMOVE, CLEAR, EXPLOSION], hud)
 pf = player_field(screen, audiomng, [SHOT, EXPLOSION], hud)
 pfx = pf.x
 def init():
@@ -71,7 +71,7 @@ def handle_phase_transition():
 			pool.clear()
 			handle_building_phase_ui()
 			pool.add(pf)
-			pool.add(placement_HUD)
+			pool.add(Placement_HUD(screen,50,10))
 			phase = GameState.InBuildingPhase
 			print("Exiting building phase")
 	else:

@@ -1,4 +1,5 @@
 import random
+from typing import List, Tuple
 from engine import *
 import pygame
 from pygame import gfxdraw
@@ -18,6 +19,7 @@ class field(render_item, mouse_listener):
     radius = (width//n+1)//3
     hits = 0
     maxhits = 0
+    boats : List[List[Tuple[int,int]]] = []
 
     def __init__(self, surface, audio_manager_reference, audio_ids, hud, offset_x=1, offset_y=1):
         self.surface = surface
@@ -36,6 +38,7 @@ class field(render_item, mouse_listener):
 
     def reset(self):
         # Reset the board to empty (0 = water)
+        self.boats = []
         self.board = [
             [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
             [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -48,6 +51,17 @@ class field(render_item, mouse_listener):
             [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
             [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
         ]
+
+    def this_sunk_the_boat(self, x,y) -> Tuple[bool,int]:
+        for i,boat in enumerate(self.boats):
+            if (x,y) in boat:
+                for coord in boat:
+                    xi,yi = coord
+                    if self.board[yi][xi] != Status.Hit:
+                        return False,-1
+                return True,i
+        
+        return False,-1
 
     def is_hit(self, x, y):
         # Check if the selected cell is a hit or miss
@@ -64,15 +78,20 @@ class field(render_item, mouse_listener):
         assert (len(point1) > 1 and len(point2) > 1)
         x1, y1 = point1
         x2, y2 = point2
+        boat = []
         if y1 == y2:
             # Horizontal boat
             for x in range(min(x1, x2), max(x1, x2)+1):
                 self.board[y1][x] = Status.Boat.value
+                boat.append((x,y1))
+            self.boats.append(boat)
             return True
         elif x1 == x2:
             # Vertical boat
             for y in range(min(y1, y2), max(y1, y2)+1):
                 self.board[y][x1] = Status.Boat.value
+                boat.append((x1,y))
+            self.boats.append(boat)
             return True
         else:
             # Only straight boats allowed
@@ -143,7 +162,7 @@ class field(render_item, mouse_listener):
 
     def random_setup(self):
         # Randomly place three ships on the board
-        boats = [Boat.Fregate, Boat.Destroyer, Boat.Submarine]
+        boats = [Boat.Fregate, Boat.Destroyer, Boat.Carrier] #TODO: This should match the opponent
        
         possible_target_points = 0
         for i in range(0, len(boats)):
@@ -195,6 +214,12 @@ class field(render_item, mouse_listener):
                                              data=attack_message(self.__class__.__name__, bx, by))
             if self.is_hit(bx, by):
                 self.board[by][bx] = Status.Hit  # Mark as hit
+                b, i = self.this_sunk_the_boat(bx,by)
+                print(f"this sunk {b} boat {i}")
+                if(b):
+                    self.boats.pop(i)
+                    self.audio_manager.play(self.audio_ids[3])
+
                 self.audio_manager.play(self.audio_ids[1])
                 message_center_instance.publish(attack_result_message.__name__,attack_result_message(self.__class__.__name__,bx,by ,True))
             else:
@@ -203,6 +228,7 @@ class field(render_item, mouse_listener):
                     self.audio_manager.play(self.audio_ids[0])
                     message_center_instance.publish(attack_result_message.__name__,attack_result_message(self.__class__.__name__,bx,by ,False))
                 # Else do nothing, already hit/miss
+    #MARK: Messages
     def receive(self, message_type, data):
         print(f"Field received message: {message_type}")
         if message_type == turn_over_message.__name__:

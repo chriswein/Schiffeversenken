@@ -193,7 +193,7 @@ class player_field(render_item, mouse_listener):
 
             message_center_instance.publish(boat_placed_message.__name__, boat_placed_message(player_field.__name__, self.selected_boat))
             
-            if len(self.boats) > self.maxboats: # Placed all boats
+            if len(self.boats) >= self.maxboats: # Placed all boats
                 self.selected_boat = None
                 self.placing_boat = False
 
